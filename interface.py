@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import wx
+import ape
 
 class PCRSimulatorFrame(wx.Frame):
 	def __init__(self):
@@ -23,6 +24,25 @@ class PCRSimulatorFrame(wx.Frame):
 
 
 	def CreateMenuBar(self):
+
+		def onNew(self, event):
+			return True
+
+		def onOpen(self, event):
+			return True
+
+		def onRevert(self, event):
+			return True
+
+		def onSave(self, event):
+			return True
+
+		def onSaveAs(self, event):
+			return True
+
+		def onExit(self, event):
+			return True
+
 		menuFile       = wx.Menu()
 		menuFileNew    = menuFile.Append(wx.ID_NEW,             "&New",            "Start a file")
 		menuFileOpen   = menuFile.Append(wx.ID_OPEN,            "&Open",           "Open a file")
@@ -95,6 +115,15 @@ class PCRSimulatorFrame(wx.Frame):
 		self.rPrimerCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER)
 		self.rPrimerData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
 
+		def testfn1(event):
+			self.rPrimerData.SetValue(ape.readBP('input.ape'))
+
+		def testfn2(event):
+			ape.writeBP('output.ape', self.rPrimerData.GetValue())
+
+		self.rPrimerLoadButton.Bind(wx.EVT_BUTTON, testfn1)
+		self.rPrimerSaveButton.Bind(wx.EVT_BUTTON, testfn2)
+
 		rPrimerSizer = wx.StaticBoxSizer(wx.StaticBox(self, label="Termination Primer", style=wx.ALIGN_CENTER), wx.VERTICAL)
 		rPrimerSizer.Add(self.rPrimerLoadButton, 0, wx.EXPAND)
 		rPrimerSizer.Add(self.rPrimerSaveButton, 0, wx.EXPAND)
@@ -146,27 +175,11 @@ class PCRSimulatorFrame(wx.Frame):
 		self.SetSizer(sizer)
 
 
-	def onNew(self, event):
-		return True
 
-	def onOpen(self, event):
-		return True
-
-	def onRevert(self, event):
-		return True
-
-	def onSave(self, event):
-		return True
-
-	def onSaveAs(self, event):
-		return True
-
-	def onExit(self, event):
-		return True
 
 class PCRSimulatorApp(wx.App):
 	def OnInit(self):
-		self.mainFrame = PCRSimulatorFrame()
-		self.mainFrame.Show()
-		self.SetTopWindow(self.mainFrame)
+		self.frame = PCRSimulatorFrame()
+		self.frame.Show()
+		self.SetTopWindow(self.frame)
 		return True
