@@ -7,7 +7,6 @@ def readBP(filename):
 	while file.readline() != "ORIGIN\n":
 		pass
 	contents = file.read()
-	print contents
 	return re.sub('[^AGCTagct]', '', contents)
 
 def writeBP(filename, bp):

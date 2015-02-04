@@ -2,6 +2,7 @@
 
 import wx
 import ape
+import os
 
 class PCRSimulatorFrame(wx.Frame):
 	def __init__(self):
@@ -22,133 +23,112 @@ class PCRSimulatorFrame(wx.Frame):
 
 		self.Show(True)
 
+	def load(self, datactrl, namectrl, lenctrl, actrl, cctrl):
+		def on_load(event):
+			dlg = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape)|*.ape", style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_CHANGE_DIR)
+			result = dlg.ShowModal()
+			if result == wx.ID_OK:
+				bp = ape.readBP(os.path.join(dlg.GetDirectory(), dlg.GetFilename()))
+				namectrl.SetLabel(label=dlg.GetFilename())
+				lenctrl.SetLabel(label=str(len(bp)) + " base pairs")
+				actrl.SetLabel(label=str(bp.count('A') + bp.count('a')) + " adenine")
+				cctrl.SetLabel(label=str(bp.count('C') + bp.count('c')) + " cytosine")
+				datactrl.SetValue(bp)
+			dlg.Destroy()
+		return on_load
 
-	def CreateMenuBar(self):
-
-		def onNew(self, event):
-			return True
-
-		def onOpen(self, event):
-			return True
-
-		def onRevert(self, event):
-			return True
-
-		def onSave(self, event):
-			return True
-
-		def onSaveAs(self, event):
-			return True
-
-		def onExit(self, event):
-			return True
-
-		menuFile       = wx.Menu()
-		menuFileNew    = menuFile.Append(wx.ID_NEW,             "&New",            "Start a file")
-		menuFileOpen   = menuFile.Append(wx.ID_OPEN,            "&Open",           "Open a file")
-		menuFileRevert = menuFile.Append(wx.ID_REVERT_TO_SAVED, "Revert to Saved", "Destroy changes since the previous save")
-		menuFileSave   = menuFile.Append(wx.ID_SAVE,            "&Save",           "Save this file")
-		menuFileSaveAs = menuFile.Append(wx.ID_SAVEAS,          "Save &As...",     "Save this file with a new name")
-		menuFileExit   = menuFile.Append(wx.ID_EXIT,            "&Exit",           "Terminate the program")
-		menuFile.Bind(wx.EVT_MENU, self.onNew,    menuFileNew)
-		menuFile.Bind(wx.EVT_MENU, self.onOpen,   menuFileOpen)
-		menuFile.Bind(wx.EVT_MENU, self.onRevert, menuFileRevert)
-		menuFile.Bind(wx.EVT_MENU, self.onSave,   menuFileSave)
-		menuFile.Bind(wx.EVT_MENU, self.onSaveAs, menuFileSaveAs)
-		menuFile.Bind(wx.EVT_MENU, self.onExit,   menuFileExit)
-
-		menuEdit = wx.Menu()
-
-		menuView = wx.Menu()
-
-		menuBar = wx.MenuBar()
-		menuBar.Append(menuFile, "&File")
-		menuBar.Append(menuEdit, "&Edit")
-		menuBar.Append(menuView, "&View")
-		self.SetMenuBar(menuBar)
-
-		return menuBar
+	def save(self, datactrl):
+		def on_save(event):
+			dlg = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape)|*.ape", style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT|wx.FD_CHANGE_DIR)
+			result = dlg.ShowModal()
+			if result == wx.ID_OK:
+				ape.writeBP(os.path.join(dlg.GetDirectory(), dlg.GetFilename()), datactrl.GetValue())
+			dlg.Destroy()
+		return on_save
 
 
 	def CreateLayout(self):
 		# Change text with wx.StaticText#SetLabel()
 
-		self.templateLoadButton = wx.Button(self, label="Load Template Strand")
-		self.templateSaveButton = wx.Button(self, label="Save Template Strand")
-		self.templateFileName = wx.StaticText(self, label="Empty file", style=wx.ALIGN_CENTER)
-		self.templateLength = wx.StaticText(self, label="0 base pairs", style=wx.ALIGN_CENTER)
-		self.templateACount = wx.StaticText(self, label="0 adenine", style=wx.ALIGN_CENTER)
-		self.templateCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER)
-		self.templateData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
+		templateLoadButton = wx.Button(self, label="Load Template Strand")
+		templateSaveButton = wx.Button(self, label="Save Template Strand")
+		templateFileName = wx.StaticText(self, label="no file", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		templateLength = wx.StaticText(self, label="0 base pairs", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		templateACount = wx.StaticText(self, label="0 adenine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		templateCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		templateData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
+
+		templateLoadButton.Bind(wx.EVT_BUTTON, self.load(datactrl=templateData, namectrl=templateFileName, lenctrl=templateLength, actrl=templateACount, cctrl=templateCCount))
+		templateSaveButton.Bind(wx.EVT_BUTTON, self.save(datactrl=templateData))
 
 		templateSizer = wx.StaticBoxSizer(wx.StaticBox(self, label="Template Strand", style=wx.ALIGN_CENTER), wx.VERTICAL)
-		templateSizer.Add(self.templateLoadButton, 0, wx.EXPAND)
-		templateSizer.Add(self.templateSaveButton, 0, wx.EXPAND)
-		templateSizer.Add(self.templateFileName, 0, wx.EXPAND)
-		templateSizer.Add(self.templateLength, 0, wx.EXPAND)
-		templateSizer.Add(self.templateACount, 0, wx.EXPAND)
-		templateSizer.Add(self.templateCCount, 0, wx.EXPAND)
-		templateSizer.Add(self.templateData, 1, wx.EXPAND)
+		templateSizer.Add(templateLoadButton, 0, wx.EXPAND)
+		templateSizer.Add(templateSaveButton, 0, wx.EXPAND)
+		templateSizer.Add(templateFileName, 0, wx.EXPAND)
+		templateSizer.Add(templateLength, 0, wx.EXPAND)
+		templateSizer.Add(templateACount, 0, wx.EXPAND)
+		templateSizer.Add(templateCCount, 0, wx.EXPAND)
+		templateSizer.Add(templateData, 1, wx.EXPAND)
 
-		self.fPrimerLoadButton = wx.Button(self, label="Load Initialization Primer")
-		self.fPrimerSaveButton = wx.Button(self, label="Save Initialization Primer")
-		self.fPrimerFileName = wx.StaticText(self, label="Empty file", style=wx.ALIGN_CENTER)
-		self.fPrimerLength = wx.StaticText(self, label="0 base pairs", style=wx.ALIGN_CENTER)
-		self.fPrimerACount = wx.StaticText(self, label="0 adenine", style=wx.ALIGN_CENTER)
-		self.fPrimerCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER)
-		self.fPrimerData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
+		fPrimerLoadButton = wx.Button(self, label="Load Initialization Primer")
+		fPrimerSaveButton = wx.Button(self, label="Save Initialization Primer")
+		fPrimerFileName = wx.StaticText(self, label="no file", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		fPrimerLength = wx.StaticText(self, label="0 base pairs", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		fPrimerACount = wx.StaticText(self, label="0 adenine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		fPrimerCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		fPrimerData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
+
+		fPrimerLoadButton.Bind(wx.EVT_BUTTON, self.load(datactrl=fPrimerData, namectrl=fPrimerFileName, lenctrl=fPrimerLength, actrl=fPrimerACount, cctrl=fPrimerCCount))
+		fPrimerSaveButton.Bind(wx.EVT_BUTTON, self.save(datactrl=fPrimerData))
 
 		fPrimerSizer = wx.StaticBoxSizer(wx.StaticBox(self, label="Initialization Primer", style=wx.ALIGN_CENTER), wx.VERTICAL)
-		fPrimerSizer.Add(self.fPrimerLoadButton, 0, wx.EXPAND)
-		fPrimerSizer.Add(self.fPrimerSaveButton, 0, wx.EXPAND)
-		fPrimerSizer.Add(self.fPrimerFileName, 0, wx.EXPAND)
-		fPrimerSizer.Add(self.fPrimerLength, 0, wx.EXPAND)
-		fPrimerSizer.Add(self.fPrimerACount, 0, wx.EXPAND)
-		fPrimerSizer.Add(self.fPrimerCCount, 0, wx.EXPAND)
-		fPrimerSizer.Add(self.fPrimerData, 1, wx.EXPAND)
+		fPrimerSizer.Add(fPrimerLoadButton, 0, wx.EXPAND)
+		fPrimerSizer.Add(fPrimerSaveButton, 0, wx.EXPAND)
+		fPrimerSizer.Add(fPrimerFileName, 0, wx.EXPAND)
+		fPrimerSizer.Add(fPrimerLength, 0, wx.EXPAND)
+		fPrimerSizer.Add(fPrimerACount, 0, wx.EXPAND)
+		fPrimerSizer.Add(fPrimerCCount, 0, wx.EXPAND)
+		fPrimerSizer.Add(fPrimerData, 1, wx.EXPAND)
 
-		self.rPrimerLoadButton = wx.Button(self, label="Load Termination Primer")
-		self.rPrimerSaveButton = wx.Button(self, label="Save Termination Primer")
-		self.rPrimerFileName = wx.StaticText(self, label="Empty file", style=wx.ALIGN_CENTER)
-		self.rPrimerLength = wx.StaticText(self, label="0 base pairs", style=wx.ALIGN_CENTER)
-		self.rPrimerACount = wx.StaticText(self, label="0 adenine", style=wx.ALIGN_CENTER)
-		self.rPrimerCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER)
-		self.rPrimerData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
+		rPrimerLoadButton = wx.Button(self, label="Load Termination Primer")
+		rPrimerSaveButton = wx.Button(self, label="Save Termination Primer")
+		rPrimerFileName = wx.StaticText(self, label="no file", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		rPrimerLength = wx.StaticText(self, label="0 base pairs", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		rPrimerACount = wx.StaticText(self, label="0 adenine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		rPrimerCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		rPrimerData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
 
-		def testfn1(event):
-			self.rPrimerData.SetValue(ape.readBP('input.ape'))
-
-		def testfn2(event):
-			ape.writeBP('output.ape', self.rPrimerData.GetValue())
-
-		self.rPrimerLoadButton.Bind(wx.EVT_BUTTON, testfn1)
-		self.rPrimerSaveButton.Bind(wx.EVT_BUTTON, testfn2)
+		rPrimerLoadButton.Bind(wx.EVT_BUTTON, self.load(datactrl=rPrimerData, namectrl=rPrimerFileName, lenctrl=rPrimerLength, actrl=rPrimerACount, cctrl=rPrimerCCount))
+		rPrimerSaveButton.Bind(wx.EVT_BUTTON, self.save(datactrl=rPrimerData))
 
 		rPrimerSizer = wx.StaticBoxSizer(wx.StaticBox(self, label="Termination Primer", style=wx.ALIGN_CENTER), wx.VERTICAL)
-		rPrimerSizer.Add(self.rPrimerLoadButton, 0, wx.EXPAND)
-		rPrimerSizer.Add(self.rPrimerSaveButton, 0, wx.EXPAND)
-		rPrimerSizer.Add(self.rPrimerFileName, 0, wx.EXPAND)
-		rPrimerSizer.Add(self.rPrimerLength, 0, wx.EXPAND)
-		rPrimerSizer.Add(self.rPrimerACount, 0, wx.EXPAND)
-		rPrimerSizer.Add(self.rPrimerCCount, 0, wx.EXPAND)
-		rPrimerSizer.Add(self.rPrimerData, 1, wx.EXPAND)
+		rPrimerSizer.Add(rPrimerLoadButton, 0, wx.EXPAND)
+		rPrimerSizer.Add(rPrimerSaveButton, 0, wx.EXPAND)
+		rPrimerSizer.Add(rPrimerFileName, 0, wx.EXPAND)
+		rPrimerSizer.Add(rPrimerLength, 0, wx.EXPAND)
+		rPrimerSizer.Add(rPrimerACount, 0, wx.EXPAND)
+		rPrimerSizer.Add(rPrimerCCount, 0, wx.EXPAND)
+		rPrimerSizer.Add(rPrimerData, 1, wx.EXPAND)
 
-		self.outputLoadButton = wx.Button(self, label="Load PCR Output")
-		self.outputSaveButton = wx.Button(self, label="Save PCR Output")
-		self.outputFileName = wx.StaticText(self, label="Empty file", style=wx.ALIGN_CENTER)
-		self.outputLength = wx.StaticText(self, label="0 base pairs", style=wx.ALIGN_CENTER)
-		self.outputACount = wx.StaticText(self, label="0 adenine", style=wx.ALIGN_CENTER)
-		self.outputCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER)
-		self.outputData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
+		outputLoadButton = wx.Button(self, label="Load PCR Output")
+		outputSaveButton = wx.Button(self, label="Save PCR Output")
+		outputFileName = wx.StaticText(self, label="no file", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		outputLength = wx.StaticText(self, label="0 base pairs", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		outputACount = wx.StaticText(self, label="0 adenine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		outputCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
+		outputData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
+
+		outputLoadButton.Bind(wx.EVT_BUTTON, self.load(datactrl=outputData, namectrl=outputFileName, lenctrl=outputLength, actrl=outputACount, cctrl=outputCCount))
+		outputSaveButton.Bind(wx.EVT_BUTTON, self.save(datactrl=outputData))
 
 		outputSizer = wx.StaticBoxSizer(wx.StaticBox(self, label="PCR Output Strand", style=wx.ALIGN_CENTER), wx.VERTICAL)
-		outputSizer.Add(self.outputLoadButton, 0, wx.EXPAND)
-		outputSizer.Add(self.outputSaveButton, 0, wx.EXPAND)
-		outputSizer.Add(self.outputFileName, 0, wx.EXPAND)
-		outputSizer.Add(self.outputLength, 0, wx.EXPAND)
-		outputSizer.Add(self.outputACount, 0, wx.EXPAND)
-		outputSizer.Add(self.outputCCount, 0, wx.EXPAND)
-		outputSizer.Add(self.outputData, 1, wx.EXPAND)
+		outputSizer.Add(outputLoadButton, 0, wx.EXPAND)
+		outputSizer.Add(outputSaveButton, 0, wx.EXPAND)
+		outputSizer.Add(outputFileName, 0, wx.EXPAND)
+		outputSizer.Add(outputLength, 0, wx.EXPAND)
+		outputSizer.Add(outputACount, 0, wx.EXPAND)
+		outputSizer.Add(outputCCount, 0, wx.EXPAND)
+		outputSizer.Add(outputData, 1, wx.EXPAND)
 
 		self.generatePrimers = wx.Button(self, label="Generate Primers")
 		self.generateOutput = wx.Button(self, label="Generate PCR Output")
