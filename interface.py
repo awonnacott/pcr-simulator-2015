@@ -3,6 +3,7 @@
 import wx
 import ape
 import os
+import genomics
 
 class PCRSimulatorFrame(wx.Frame):
 	def __init__(self):
@@ -23,29 +24,66 @@ class PCRSimulatorFrame(wx.Frame):
 
 		self.Show(True)
 
-	def load(self, datactrl, namectrl, lenctrl, actrl, cctrl):
-		def on_load(event):
+	def load(self, onWrite, nameCtrl):
+		def onLoad(event):
 			dlg = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape)|*.ape", style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_CHANGE_DIR)
 			result = dlg.ShowModal()
 			if result == wx.ID_OK:
-				bp = ape.readBP(os.path.join(dlg.GetDirectory(), dlg.GetFilename()))
-				namectrl.SetLabel(label=dlg.GetFilename())
-				lenctrl.SetLabel(label=str(len(bp)) + " base pairs")
-				actrl.SetLabel(label=str(bp.count('A') + bp.count('a')) + " adenine")
-				cctrl.SetLabel(label=str(bp.count('C') + bp.count('c')) + " cytosine")
-				datactrl.SetValue(bp)
+				onWrite(bp=ape.readBP(os.path.join(dlg.GetDirectory(), dlg.GetFilename())))
+				nameCtrl.SetLabel(label=dlg.GetFilename())
 			dlg.Destroy()
-		return on_load
+		return onLoad
 
-	def save(self, datactrl):
-		def on_save(event):
+	def save(self, dataCtrl):
+		def onSave(event):
 			dlg = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape)|*.ape", style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT|wx.FD_CHANGE_DIR)
 			result = dlg.ShowModal()
 			if result == wx.ID_OK:
-				ape.writeBP(os.path.join(dlg.GetDirectory(), dlg.GetFilename()), datactrl.GetValue())
+				ape.writeBP(filename=os.path.join(dlg.GetDirectory(), dlg.GetFilename()), bp=dataCtrl.GetValue())
 			dlg.Destroy()
-		return on_save
+		return onSave
 
+	def writeCtrl(self, dataCtrl, nameCtrl, lengthCtrl, aCtrl, cCtrl):
+		def onWrite(bp):
+			nameCtrl.SetLabel("unsaved file")
+			lengthCtrl.SetLabel(label=str(len(bp)) + " base pairs")
+			aCtrl.SetLabel(label=str(bp.count('A') + bp.count('a')) + " adenine")
+			cCtrl.SetLabel(label=str(bp.count('C') + bp.count('c')) + " cytosine")
+			dataCtrl.SetValue(value=bp)
+		return onWrite
+
+	def generatePrimers(self, templateDataCtrl, outputDataCtrl, fPrimerOnWrite, rPrimerOnWrite):
+		def onGeneratePrimers(event):
+			templateBP = templateDataCtrl.GetValue()
+			outputBP = outputDataCtrl.GetValue()
+			fPrimerBP, rPrimerBP = genomics.generatePrimers(template=templateBP, output=outputBP)
+			fPrimerOnWrite(bp=fPrimerBP)
+			rPrimerOnWrite(bp=rPrimerBP)
+		return onGeneratePrimers
+
+	def simulatePCR(self, templateDataCtrl, fPrimerDataCtrl, rPrimerDataCtrl, outputOnWrite):
+		def onSimulatePCR(event):
+			templateBP = templateDataCtrl.GetValue()
+			fPrimerBP = fPrimerDataCtrl.GetValue()
+			rPrimerBP = rPrimerDataCtrl.GetValue()
+			outputBP = genomics.simulatePCR(template=templateBP, fPrimer=fPrimerBP, rPrimer=rPrimerBP)
+			outputOnWrite(bp=outputBP)
+		return onSimulatePCR
+
+	def verifyPrimers(self, templateDataCtrl, fPrimerDataCtrl, rPrimerDataCtrl, outputDataCtrl):
+		def onVerifyPrimers(event):
+			templateBP = templateDataCtrl.GetValue()
+			fPrimerBP = fPrimerDataCtrl.GetValue()
+			rPrimerBP = rPrimerDataCtrl.GetValue()
+			outputBP = outputDataCtrl.GetValue()
+			checkPass, simOutputBP = genomics.verifyPrimers(template=templateBP, fPrimer=fPrimerBP, rPrimer=rPrimerBP, output=outputBP)
+			if checkPass:
+				wx.MessageBox(self, message='Output verified: primers work', caption='Primer verification pass', style=wx.OK|wx.ICON_INFORMATION)
+			else:
+				resultTEDialog = wx.TextEntryDialog(self, message='Output verified: primers fail\nSimulation yielded:', caption='Primer verification fail', style=wx.OK|wx.TE_MULTILINE|wx.TE_CHARWRAP|wx.TE_READONLY)
+				resultTEDialog.SetValue(value=simOutputBP)
+				resultTEDialog.ShowModal()
+		return onVerifyPrimers
 
 	def CreateLayout(self):
 		# Change text with wx.StaticText#SetLabel()
@@ -58,8 +96,9 @@ class PCRSimulatorFrame(wx.Frame):
 		templateCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
 		templateData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
 
-		templateLoadButton.Bind(wx.EVT_BUTTON, self.load(datactrl=templateData, namectrl=templateFileName, lenctrl=templateLength, actrl=templateACount, cctrl=templateCCount))
-		templateSaveButton.Bind(wx.EVT_BUTTON, self.save(datactrl=templateData))
+		templateOnWrite = self.writeCtrl(dataCtrl=templateData, nameCtrl=templateFileName, lengthCtrl=templateLength, aCtrl=templateACount, cCtrl=templateCCount)
+		templateLoadButton.Bind(wx.EVT_BUTTON, self.load(onWrite=templateOnWrite, nameCtrl=templateFileName))
+		templateSaveButton.Bind(wx.EVT_BUTTON, self.save(dataCtrl=templateData))
 
 		templateSizer = wx.StaticBoxSizer(wx.StaticBox(self, label="Template Strand", style=wx.ALIGN_CENTER), wx.VERTICAL)
 		templateSizer.Add(templateLoadButton, 0, wx.EXPAND)
@@ -78,8 +117,9 @@ class PCRSimulatorFrame(wx.Frame):
 		fPrimerCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
 		fPrimerData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
 
-		fPrimerLoadButton.Bind(wx.EVT_BUTTON, self.load(datactrl=fPrimerData, namectrl=fPrimerFileName, lenctrl=fPrimerLength, actrl=fPrimerACount, cctrl=fPrimerCCount))
-		fPrimerSaveButton.Bind(wx.EVT_BUTTON, self.save(datactrl=fPrimerData))
+		fPrimerOnWrite = self.writeCtrl(dataCtrl=fPrimerData, nameCtrl=fPrimerFileName, lengthCtrl=fPrimerLength, aCtrl=fPrimerACount, cCtrl=fPrimerCCount)
+		fPrimerLoadButton.Bind(wx.EVT_BUTTON, self.load(onWrite=fPrimerOnWrite, nameCtrl=fPrimerFileName))
+		fPrimerSaveButton.Bind(wx.EVT_BUTTON, self.save(dataCtrl=fPrimerData))
 
 		fPrimerSizer = wx.StaticBoxSizer(wx.StaticBox(self, label="Initialization Primer", style=wx.ALIGN_CENTER), wx.VERTICAL)
 		fPrimerSizer.Add(fPrimerLoadButton, 0, wx.EXPAND)
@@ -98,8 +138,9 @@ class PCRSimulatorFrame(wx.Frame):
 		rPrimerCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
 		rPrimerData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
 
-		rPrimerLoadButton.Bind(wx.EVT_BUTTON, self.load(datactrl=rPrimerData, namectrl=rPrimerFileName, lenctrl=rPrimerLength, actrl=rPrimerACount, cctrl=rPrimerCCount))
-		rPrimerSaveButton.Bind(wx.EVT_BUTTON, self.save(datactrl=rPrimerData))
+		rPrimerOnWrite = self.writeCtrl(dataCtrl=rPrimerData, nameCtrl=rPrimerFileName, lengthCtrl=rPrimerLength, aCtrl=rPrimerACount, cCtrl=rPrimerCCount)
+		rPrimerLoadButton.Bind(wx.EVT_BUTTON, self.load(onWrite=rPrimerOnWrite, nameCtrl=rPrimerFileName))
+		rPrimerSaveButton.Bind(wx.EVT_BUTTON, self.save(dataCtrl=rPrimerData))
 
 		rPrimerSizer = wx.StaticBoxSizer(wx.StaticBox(self, label="Termination Primer", style=wx.ALIGN_CENTER), wx.VERTICAL)
 		rPrimerSizer.Add(rPrimerLoadButton, 0, wx.EXPAND)
@@ -118,8 +159,9 @@ class PCRSimulatorFrame(wx.Frame):
 		outputCCount = wx.StaticText(self, label="0 cytosine", style=wx.ALIGN_CENTER|wx.ST_NO_AUTORESIZE)
 		outputData = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_CHARWRAP)
 
-		outputLoadButton.Bind(wx.EVT_BUTTON, self.load(datactrl=outputData, namectrl=outputFileName, lenctrl=outputLength, actrl=outputACount, cctrl=outputCCount))
-		outputSaveButton.Bind(wx.EVT_BUTTON, self.save(datactrl=outputData))
+		outputOnWrite = self.writeCtrl(dataCtrl=outputData, nameCtrl=outputFileName, lengthCtrl=outputLength, aCtrl=outputACount, cCtrl=outputCCount)
+		outputLoadButton.Bind(wx.EVT_BUTTON, self.load(onWrite=outputOnWrite, nameCtrl=outputFileName))
+		outputSaveButton.Bind(wx.EVT_BUTTON, self.save(dataCtrl=outputData))
 
 		outputSizer = wx.StaticBoxSizer(wx.StaticBox(self, label="PCR Output Strand", style=wx.ALIGN_CENTER), wx.VERTICAL)
 		outputSizer.Add(outputLoadButton, 0, wx.EXPAND)
@@ -130,15 +172,19 @@ class PCRSimulatorFrame(wx.Frame):
 		outputSizer.Add(outputCCount, 0, wx.EXPAND)
 		outputSizer.Add(outputData, 1, wx.EXPAND)
 
-		self.generatePrimers = wx.Button(self, label="Generate Primers")
-		self.generateOutput = wx.Button(self, label="Generate PCR Output")
-		self.verifyOutput = wx.Button(self, label="Verify PCR Output")
+		generatePrimers = wx.Button(self, label="Generate Primers")
+		simulatePCR = wx.Button(self, label="Simulate PCR")
+		verifyPrimers = wx.Button(self, label="Verify Primers")
+
+		generatePrimers.Bind(wx.EVT_BUTTON, self.generatePrimers(templateDataCtrl=templateData, outputDataCtrl=outputData, fPrimerOnWrite=fPrimerOnWrite, rPrimerOnWrite=rPrimerOnWrite))
+		simulatePCR.Bind(wx.EVT_BUTTON, self.simulatePCR(templateDataCtrl=templateData, fPrimerDataCtrl=fPrimerData, rPrimerDataCtrl=rPrimerData, outputOnWrite=outputOnWrite))
+		verifyPrimers.Bind(wx.EVT_BUTTON, self.verifyPrimers(templateDataCtrl=templateData, fPrimerDataCtrl=fPrimerData, rPrimerDataCtrl=rPrimerData, outputDataCtrl=outputData))
 
 		actionSizer = wx.BoxSizer(wx.VERTICAL)
 		actionSizer.AddStretchSpacer()
-		actionSizer.Add(self.generatePrimers, 1, wx.EXPAND)
-		actionSizer.Add(self.generateOutput, 1, wx.EXPAND)
-		actionSizer.Add(self.verifyOutput, 1, wx.EXPAND)
+		actionSizer.Add(generatePrimers, 1, wx.EXPAND)
+		actionSizer.Add(simulatePCR, 1, wx.EXPAND)
+		actionSizer.Add(verifyPrimers, 1, wx.EXPAND)
 
 		sizer = wx.FlexGridSizer(1, 5, 5, 5)
 		sizer.AddGrowableRow(0)
@@ -153,7 +199,6 @@ class PCRSimulatorFrame(wx.Frame):
 		sizer.Add(actionSizer, 1)
 
 		self.SetSizer(sizer)
-
 
 
 
