@@ -11,9 +11,6 @@ class PCRSimulatorFrame(wx.Frame):
 
 		#self.icon = wx.Icon("res/icon.png", wx.BITMAP_TYPE_ANY)
 		#self.SetIcon(self.icon)
-
-		#self.CreateMenuBar() # Access with self.GetMenuBar()
-		#self.CreateToolBar(wx.TB_HORIZONTAL|wx.TB_FLAT|wx.TB_TEXT) # Access with self.GetToolBar()
 		self.CreateStatusBar() # Access with self.GetStatusBar()
 
 		self.SetBackgroundColour(wx.WHITE)
@@ -26,21 +23,19 @@ class PCRSimulatorFrame(wx.Frame):
 
 	def load(self, onWrite, nameCtrl):
 		def onLoad(event):
-			dlg = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape, .str)|*.ape;*.str", style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_CHANGE_DIR)
-			result = dlg.ShowModal()
-			if result == wx.ID_OK:
-				onWrite(bp=ape.readBP(os.path.join(dlg.GetDirectory(), dlg.GetFilename())))
-				nameCtrl.SetLabel(label=dlg.GetFilename())
-			dlg.Destroy()
+			loadDialog = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape, .str)|*.ape;*.str", style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_CHANGE_DIR)
+			if loadDialog.ShowModal() == wx.ID_OK:
+				onWrite(bp=ape.readBP(os.path.join(loadDialog.GetDirectory(), loadDialog.GetFilename())))
+				nameCtrl.SetLabel(label=loadDialog.GetFilename())
+			loadDialog.Destroy()
 		return onLoad
 
 	def save(self, dataCtrl):
 		def onSave(event):
-			dlg = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape, .str)|*.ape;*.str", style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT|wx.FD_CHANGE_DIR)
-			result = dlg.ShowModal()
-			if result == wx.ID_OK:
-				ape.writeBP(filename=os.path.join(dlg.GetDirectory(), dlg.GetFilename()), bp=dataCtrl.GetValue())
-			dlg.Destroy()
+			saveDialog = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape, .str)|*.ape;*.str", style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT|wx.FD_CHANGE_DIR)
+			if saveDialog.ShowModal() == wx.ID_OK:
+				ape.writeBP(filename=os.path.join(saveDialog.GetDirectory(), saveDialog.GetFilename()), bp=dataCtrl.GetValue())
+			saveDialog.Destroy()
 		return onSave
 
 	def writeCtrl(self, dataCtrl, nameCtrl, lengthCtrl, aCtrl, cCtrl):
@@ -56,7 +51,21 @@ class PCRSimulatorFrame(wx.Frame):
 		def onGeneratePrimers(event):
 			templateBP = templateDataCtrl.GetValue()
 			outputBP = outputDataCtrl.GetValue()
-			fPrimerBP, rPrimerBP = genomics.generatePrimers(template=templateBP, output=outputBP)
+			restrictionMDialog = wx.MessageDialog(self, message='Load restriction site sequence for primer caps?', caption='Primer cap selection', style=wx.YES_NO|wx.ICON_QUESTION)
+			if restrictionMDialog.ShowModal() == wx.ID_YES:
+				capDialog = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape, .str)|*.ape;*.str", style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST)
+				if capDialog.ShowModal() == wx.ID_OK:
+					primerCapBP = ape.readBP(os.path.join(capDialog.GetDirectory(), capDialog.GetFilename()))
+				else:
+					noFileMDialog = wx.MessageDialog(self, message='No primer cap selected: none will be used', caption='Primer cap selection error', style=wx.OK|wx.ICON_ERROR)
+					noFileMDialog.ShowModal()
+					noFileMDialog.Destroy()
+					primerCapBP = ""
+				capDialog.Destroy()
+			else:
+				primerCapBP = ""
+			restrictionMDialog.Destroy()
+			fPrimerBP, rPrimerBP = genomics.generatePrimers(template=templateBP, output=outputBP, primerCap=primerCapBP)
 			fPrimerOnWrite(bp=fPrimerBP)
 			rPrimerOnWrite(bp=rPrimerBP)
 		return onGeneratePrimers
@@ -67,7 +76,16 @@ class PCRSimulatorFrame(wx.Frame):
 			fPrimerBP = fPrimerDataCtrl.GetValue()
 			rPrimerBP = rPrimerDataCtrl.GetValue()
 			outputBP = genomics.simulatePCR(template=templateBP, fPrimer=fPrimerBP, rPrimer=rPrimerBP)
-			outputOnWrite(bp=outputBP)
+			if outputBP == None:
+				resultMDialog = wx.MessageDialog(self, message='Primers homologous within output', caption='Polymerase reaction error', style=wx.OK|wx.ICON_ERROR)
+				resultMDialog.ShowModal()
+				resultMDialog.Destroy()
+			elif outputBP == "":
+				resultMDialog = wx.MessageDialog(self, message='Primers not homologous within template', caption='Polymerase reaction error', style=wx.OK|wx.ICON_ERROR)
+				resultMDialog.ShowModal()
+				resultMDialog.Destroy()
+			else:
+				outputOnWrite(bp=outputBP)
 		return onSimulatePCR
 
 	def verifyPrimers(self, templateDataCtrl, fPrimerDataCtrl, rPrimerDataCtrl, outputDataCtrl):
@@ -76,14 +94,24 @@ class PCRSimulatorFrame(wx.Frame):
 			fPrimerBP = fPrimerDataCtrl.GetValue()
 			rPrimerBP = rPrimerDataCtrl.GetValue()
 			outputBP = outputDataCtrl.GetValue()
-			checkPass, simOutputBP = genomics.verifyPrimers(template=templateBP, fPrimer=fPrimerBP, rPrimer=rPrimerBP, output=outputBP)
-			if checkPass:
+			simOutputBP = genomics.simulatePCR(template=templateBP, fPrimer=fPrimerBP, rPrimer=rPrimerBP)
+			if simOutputBP == outputBP:
 				resultMDialog = wx.MessageDialog(self, message='Output verified: primers work', caption='Primer verification pass', style=wx.OK|wx.ICON_INFORMATION)
 				resultMDialog.ShowModal()
+				resultMDialog.Destroy()
+			elif simOutputBP == None:
+				resultMDialog = wx.MessageDialog(self, message='Output not verified: primers fail\nPrimers homologous within output', caption='Primer verification fail', style=wx.OK|wx.ICON_ERROR)
+				resultMDialog.ShowModal()
+				resultMDialog.Destroy()
+			elif simOutputBP == "":
+				resultMDialog = wx.MessageDialog(self, message='Output not verified: primers fail\nPrimers not homologous within template', caption='Primer verification fail', style=wx.OK|wx.ICON_ERROR)
+				resultMDialog.ShowModal()
+				resultMDialog.Destroy()
 			else:
-				resultTEDialog = wx.TextEntryDialog(self, message='Output verified: primers fail\nSimulation yielded:', caption='Primer verification fail', style=wx.OK|wx.TE_MULTILINE|wx.TE_CHARWRAP|wx.TE_READONLY)
+				resultTEDialog = wx.TextEntryDialog(self, message='Output not verified: primers fail\nSimulation yielded:', caption='Primer verification fail', style=wx.OK|wx.TE_MULTILINE|wx.TE_CHARWRAP|wx.TE_READONLY)
 				resultTEDialog.SetValue(value=simOutputBP)
 				resultTEDialog.ShowModal()
+				resultMDialog.Destroy()
 		return onVerifyPrimers
 
 	def CreateLayout(self):

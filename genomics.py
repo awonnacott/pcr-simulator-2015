@@ -6,11 +6,12 @@ def reverseComplement(bp):
 	bpdict = {'A':'T','a':'t','C':'G','c':'g','G':'C','g':'c','T':'A','t':'a'}
 	return re.compile('|'.join(bpdict.keys())).sub(lambda x : bpdict[x.group()], bp)[::-1]
 
-def generatePrimers(template, output):
-	fPrimer = "AACCGGTTAGCCCCGAGCCTCCCG" # replace this
-	rPrimer = "ATCGGGGTCCCCAAACAAACC"
-	return [fPrimer, rPrimer]
-
+def generatePrimers(template, output, primerCap = ""):
+	templateFIndex = template.find(output)
+	templateRIndex = template.find(output) + len(output)
+	fPrimer = template[templateFIndex:templateFIndex+18]
+	rPrimer = reverseComplement(bp=template[templateRIndex-18:templateRIndex])
+	return [primerCap + fPrimer, reverseComplement(bp=primerCap) + rPrimer]
 
 def simulatePCR(template, fPrimer, rPrimer):
 	templateFIndex=-1
@@ -24,7 +25,7 @@ def simulatePCR(template, fPrimer, rPrimer):
 		return ""
 	templateRIndex=-1
 	templateRLength=-1
-	for i in range(8,26)[::-1]:
+	for i in range(8,50)[::-1]:
 		templateRIndex = template.find(reverseComplement(bp=rPrimer[-i:]))
 		if templateRIndex > -1:
 			templateRLength=i
@@ -33,11 +34,5 @@ def simulatePCR(template, fPrimer, rPrimer):
 		return ""
 	shouldNotContainBitsOPrimers = template[templateFIndex+templateFLength-7:templateRIndex+7]
 	if (shouldNotContainBitsOPrimers.find(fPrimer[-8:]) > -1) or (shouldNotContainBitsOPrimers.find(reverseComplement(bp=rPrimer[-8:])) > -1):
-		print "Dang nabbit"
-		return ""
+		return None
 	return fPrimer[:-templateFLength]+template[templateFIndex:templateRIndex+templateRLength]+reverseComplement(rPrimer[:-templateRLength])
-
-
-def verifyPrimers(template, fPrimer, rPrimer, output):
-	simOutput = simulatePCR(template=template, fPrimer=fPrimer, rPrimer=rPrimer)
-	return [simOutput == output, simOutput]
