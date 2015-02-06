@@ -1,0 +1,26 @@
+LOCUS       dcasF                     53 bp ds-DNA     linear       10-JUL-2014
+DEFINITION  .
+ACCESSION   
+VERSION     
+SOURCE      .
+  ORGANISM  .
+COMMENT     
+COMMENT     
+COMMENT     ApEinfo:methylated:1
+FEATURES             Location/Qualifiers
+     misc_feature    26..53
+                     /label=dCas9
+                     /ApEinfo_fwdcolor=#ff8040
+                     /ApEinfo_revcolor=green
+                     /ApEinfo_graphicformat=arrow_data {{0 1 2 0 0 -1} {} 0}
+                     width 5 offset 0
+     promoter        1..4
+                     /vntifkey="21"
+                     /label=Pmop
+                     /ApEinfo_fwdcolor=#8a8ae1
+                     /ApEinfo_revcolor=#8a8ae1
+                     /ApEinfo_graphicformat=arrow_data {{} {} 1} width 10
+                     offset 0
+ORIGIN
+        1 cagctgcaga attcggaggt tataaATGGA TAAGAAATAC TCAATAGGCT TAG
+//

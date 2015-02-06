@@ -1,0 +1,24 @@
+LOCUS       New_DNA                   53 bp ds-DNA     linear       10-JUL-2014
+DEFINITION  .
+ACCESSION   
+VERSION     
+SOURCE      .
+  ORGANISM  .
+COMMENT     
+COMMENT     ApEinfo:methylated:1
+FEATURES             Location/Qualifiers
+     misc_feature    complement(30..53)
+                     /label=3X FLAG
+                     /ApEinfo_fwdcolor=#8080c0
+                     /ApEinfo_revcolor=#ff8080
+                     /ApEinfo_graphicformat=arrow_data {{0 1 2 0 0 -1} {} 0}
+                     width 5 offset 0
+     misc_feature    complement(21..26)
+                     /label=Pst1
+                     /ApEinfo_fwdcolor=#ffcc66
+                     /ApEinfo_revcolor=green
+                     /ApEinfo_graphicformat=arrow_data {{0 1 2 0 0 -1} {} 0}
+                     width 5 offset 0
+ORIGIN
+        1 acatcgataa gcttcgaatt CTGCAGCTAC TTGTCATCGT CATCCTTGTA ATC
+//
