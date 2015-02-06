@@ -26,7 +26,7 @@ class PCRSimulatorFrame(wx.Frame):
 
 	def load(self, onWrite, nameCtrl):
 		def onLoad(event):
-			dlg = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape)|*.ape", style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_CHANGE_DIR)
+			dlg = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape, .str)|*.ape;*.str", style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST|wx.FD_CHANGE_DIR)
 			result = dlg.ShowModal()
 			if result == wx.ID_OK:
 				onWrite(bp=ape.readBP(os.path.join(dlg.GetDirectory(), dlg.GetFilename())))
@@ -36,7 +36,7 @@ class PCRSimulatorFrame(wx.Frame):
 
 	def save(self, dataCtrl):
 		def onSave(event):
-			dlg = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape)|*.ape", style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT|wx.FD_CHANGE_DIR)
+			dlg = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape, .str)|*.ape;*.str", style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT|wx.FD_CHANGE_DIR)
 			result = dlg.ShowModal()
 			if result == wx.ID_OK:
 				ape.writeBP(filename=os.path.join(dlg.GetDirectory(), dlg.GetFilename()), bp=dataCtrl.GetValue())
@@ -78,7 +78,8 @@ class PCRSimulatorFrame(wx.Frame):
 			outputBP = outputDataCtrl.GetValue()
 			checkPass, simOutputBP = genomics.verifyPrimers(template=templateBP, fPrimer=fPrimerBP, rPrimer=rPrimerBP, output=outputBP)
 			if checkPass:
-				wx.MessageBox(self, message='Output verified: primers work', caption='Primer verification pass', style=wx.OK|wx.ICON_INFORMATION)
+				resultMDialog = wx.MessageDialog(self, message='Output verified: primers work', caption='Primer verification pass', style=wx.OK|wx.ICON_INFORMATION)
+				resultMDialog.ShowModal()
 			else:
 				resultTEDialog = wx.TextEntryDialog(self, message='Output verified: primers fail\nSimulation yielded:', caption='Primer verification fail', style=wx.OK|wx.TE_MULTILINE|wx.TE_CHARWRAP|wx.TE_READONLY)
 				resultTEDialog.SetValue(value=simOutputBP)
