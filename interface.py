@@ -53,19 +53,31 @@ class PCRSimulatorFrame(wx.Frame):
 			outputBP = outputDataCtrl.GetValue()
 			restrictionMDialog = wx.MessageDialog(self, message='Load restriction site sequence for primer caps?', caption='Primer cap selection', style=wx.YES_NO|wx.ICON_QUESTION)
 			if restrictionMDialog.ShowModal() == wx.ID_YES:
-				capDialog = wx.FileDialog(self, message="Choose a file", wildcard="Plasmid files (.ape, .str)|*.ape;*.str", style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST)
-				if capDialog.ShowModal() == wx.ID_OK:
-					primerCapBP = ape.readBP(os.path.join(capDialog.GetDirectory(), capDialog.GetFilename()))
+				fCapDialog = wx.FileDialog(self, message="Choose a forward primer cap", wildcard="Plasmid files (.ape, .str)|*.ape;*.str", style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST)
+				if fCapDialog.ShowModal() == wx.ID_OK:
+					fPrimerCapBP = ape.readBP(os.path.join(fCapDialog.GetDirectory(), fCapDialog.GetFilename()))
+					rCapDialog = wx.FileDialog(self, message="Choose a reverse primer cap", wildcard="Plasmid files (.ape, .str)|*.ape;*.str", style=wx.FD_OPEN|wx.FD_FILE_MUST_EXIST)
+					if rCapDialog.ShowModal() == wx.ID_OK:
+						rPrimerCapBP = ape.readBP(os.path.join(rCapDialog.GetDirectory(), rCapDialog.GetFilename()))
+					else:
+						noFileMDialog = wx.MessageDialog(self, message='No primer cap selected: none will be used', caption='Primer cap selection error', style=wx.OK|wx.ICON_ERROR)
+						noFileMDialog.ShowModal()
+						noFileMDialog.Destroy()
+						fPrimerCapBP = ""
+						rPrimerCapBP = ""
+					rCapDialog.Destroy()
 				else:
 					noFileMDialog = wx.MessageDialog(self, message='No primer cap selected: none will be used', caption='Primer cap selection error', style=wx.OK|wx.ICON_ERROR)
 					noFileMDialog.ShowModal()
 					noFileMDialog.Destroy()
-					primerCapBP = ""
-				capDialog.Destroy()
+					fPrimerCapBP = ""
+					rPrimerCapBP = ""
+				fCapDialog.Destroy()
 			else:
-				primerCapBP = ""
+				fPrimerCapBP = ""
+				rPrimerCapBP = ""
 			restrictionMDialog.Destroy()
-			fPrimerBP, rPrimerBP = genomics.generatePrimers(template=templateBP, output=outputBP, primerCap=primerCapBP)
+			fPrimerBP, rPrimerBP = genomics.generatePrimers(template=templateBP, output=outputBP, fPrimerCap=fPrimerCapBP, rPrimerCap=rPrimerCapBP)
 			fPrimerOnWrite(bp=fPrimerBP)
 			rPrimerOnWrite(bp=rPrimerBP)
 		return onGeneratePrimers
@@ -111,7 +123,7 @@ class PCRSimulatorFrame(wx.Frame):
 				resultTEDialog = wx.TextEntryDialog(self, message='Output not verified: primers fail\nSimulation yielded:', caption='Primer verification fail', style=wx.OK|wx.TE_MULTILINE|wx.TE_CHARWRAP|wx.TE_READONLY)
 				resultTEDialog.SetValue(value=simOutputBP)
 				resultTEDialog.ShowModal()
-				resultMDialog.Destroy()
+				resultTEDialog.Destroy()
 		return onVerifyPrimers
 
 	def CreateLayout(self):

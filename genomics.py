@@ -6,12 +6,12 @@ def reverseComplement(bp):
 	bpdict = {'A':'T','a':'t','C':'G','c':'g','G':'C','g':'c','T':'A','t':'a'}
 	return re.compile('|'.join(bpdict.keys())).sub(lambda x : bpdict[x.group()], bp)[::-1]
 
-def generatePrimers(template, output, primerCap = ""):
-	templateFIndex = template.find(output)
-	templateRIndex = template.find(output) + len(output)
-	fPrimer = template[templateFIndex:templateFIndex+18]
-	rPrimer = reverseComplement(bp=template[templateRIndex-18:templateRIndex])
-	return [primerCap + fPrimer, reverseComplement(bp=primerCap) + rPrimer]
+def generatePrimers(template, output, fPrimerCap = "", rPrimerCap = ""):
+	templateFIndex = template.find(output[len(fPrimerCap):-len(rPrimerCap)])
+	templateRIndex = template.find(output[len(fPrimerCap):-len(rPrimerCap)]) + len(output) - len(fPrimerCap) - len(rPrimerCap)
+	fPrimer = fPrimerCap + template[templateFIndex:templateFIndex+26]
+	rPrimer = rPrimerCap + reverseComplement(bp=template[templateRIndex-26:templateRIndex])
+	return [fPrimer, rPrimer]
 
 def simulatePCR(template, fPrimer, rPrimer):
 	templateFIndex=-1
