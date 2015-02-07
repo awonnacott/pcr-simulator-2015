@@ -39,7 +39,7 @@ class PCRSimulatorFrame(wx.Frame):
 		return onSave
 
 	def writeCtrl(self, dataCtrl, nameCtrl, lengthCtrl, aCtrl, cCtrl):
-		def onWrite(bp):
+		def onWrite(bp): # Generates a function which will write bp to a column of textCtrl
 			nameCtrl.SetLabel("unsaved file")
 			lengthCtrl.SetLabel(label=str(len(bp)) + " base pairs")
 			aCtrl.SetLabel(label=str(bp.count('A') + bp.count('a')) + " adenine")
@@ -63,7 +63,6 @@ class PCRSimulatorFrame(wx.Frame):
 						noFileMDialog = wx.MessageDialog(self, message='No primer cap selected: none will be used', caption='Primer cap selection error', style=wx.OK|wx.ICON_ERROR)
 						noFileMDialog.ShowModal()
 						noFileMDialog.Destroy()
-						fPrimerCapBP = ""
 						rPrimerCapBP = ""
 					rCapDialog.Destroy()
 				else:
@@ -83,16 +82,16 @@ class PCRSimulatorFrame(wx.Frame):
 		return onGeneratePrimers
 
 	def simulatePCR(self, templateDataCtrl, fPrimerDataCtrl, rPrimerDataCtrl, outputOnWrite):
-		def onSimulatePCR(event):
+		def onSimulatePCR(event): # Generate callback function
 			templateBP = templateDataCtrl.GetValue()
 			fPrimerBP = fPrimerDataCtrl.GetValue()
 			rPrimerBP = rPrimerDataCtrl.GetValue()
 			outputBP = genomics.simulatePCR(template=templateBP, fPrimer=fPrimerBP, rPrimer=rPrimerBP)
-			if outputBP == None:
+			if outputBP == None: # genomics.simulatePCR returns None when it finds the primers in the template strand output segment
 				resultMDialog = wx.MessageDialog(self, message='Primers homologous within output', caption='Polymerase reaction error', style=wx.OK|wx.ICON_ERROR)
 				resultMDialog.ShowModal()
 				resultMDialog.Destroy()
-			elif outputBP == "":
+			elif outputBP == "":  # genomics.simulatePCR returns "" when it could not match both primers with the template strand
 				resultMDialog = wx.MessageDialog(self, message='Primers not homologous within template', caption='Polymerase reaction error', style=wx.OK|wx.ICON_ERROR)
 				resultMDialog.ShowModal()
 				resultMDialog.Destroy()
