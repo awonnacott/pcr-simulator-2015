@@ -4,7 +4,7 @@ import re
 
 def readBP(filename):
 	file = open(filename, 'r')
-	while file.readline() != "ORIGIN\n":
+	while file.readline().find("ORIGIN") == -1:
 		pass
 	contents = file.read()
 	return re.sub('[^AGCTagct]', '', contents).upper()
